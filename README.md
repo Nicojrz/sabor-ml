@@ -107,6 +107,35 @@ Amargo    : 0.15  (15.0%)
 Picante   : 0.81  (81.0%)
 ```
 
+## Evaluar una carpeta
+
+`prueba.py` también puede evaluar todas las imágenes de una carpeta y mostrar el MAE por sabor, la exactitud del sabor dominante y una matriz de confusión.
+
+```bash
+python prueba.py --carpeta train
+```
+
+Las imágenes pueden estar organizadas en varios niveles, pero la carpeta que contiene cada imagen debe tener el nombre de una comida definida en `etiquetado.py`.
+
+```text
+evaluacion/
+├── brownie/
+│   ├── imagen_01.jpg
+│   └── imagen_02.jpg
+├── chile_habanero/
+│   └── imagen_01.jpg
+└── papas_francesas/
+    └── imagen_01.jpg
+```
+
+El MAE compara los cuatro valores estimados con el perfil configurado para cada comida. La matriz de confusión compara el sabor dominante real con el sabor dominante predicho.
+
+El tamaño del lote puede ajustarse durante la evaluación.
+
+```bash
+python prueba.py --carpeta evaluacion --lote 16
+```
+
 ## Flujo completo
 
 Ejecuta los scripts en este orden cuando cambies el dataset o los perfiles de sabor.
