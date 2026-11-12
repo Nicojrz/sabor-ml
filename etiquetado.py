@@ -1,30 +1,19 @@
-"""Genera las etiquetas de sabor para todas las comidas de ``train``.
-
-Cada puntuacion representa una intensidad independiente entre 0 y 1; por eso
-las cuatro columnas no tienen que sumar 1.
-"""
-
 from pathlib import Path
 import argparse
 import unicodedata
 
 import pandas as pd
 
-
 EXTENSIONES = {".jpg", ".jpeg", ".png", ".webp"}
 COLUMNAS_SABOR = ("salado", "dulce", "amargo", "picante")
-
 
 def normalizar(nombre: str) -> str:
     """Uniforma nombres con acentos para poder compararlos."""
     nombre = unicodedata.normalize("NFKD", nombre.casefold())
     return "".join(caracter for caracter in nombre if not unicodedata.combining(caracter))
 
-
-# Formato de cada perfil: (salado, dulce, amargo, picante).
-# Las claves corresponden a cada carpeta final presente en train/.
 PERFILES_COMIDA = {
-    # Amargas
+    # amargas
     "alcachofa": (0.20, 0.05, 0.75, 0.00),
     "americano": (0.00, 0.05, 0.90, 0.00),
     "apio": (0.15, 0.05, 0.55, 0.00),
@@ -40,7 +29,7 @@ PERFILES_COMIDA = {
     "toronja": (0.00, 0.20, 0.80, 0.00),
     "vino_tinto": (0.00, 0.10, 0.70, 0.00),
 
-    # Dulces
+    # dulces
     "algodon_azucar": (0.00, 1.00, 0.00, 0.00),
     "arroz_con_leche": (0.05, 0.90, 0.05, 0.00),
     "brownie": (0.05, 0.95, 0.25, 0.00),
@@ -62,7 +51,7 @@ PERFILES_COMIDA = {
     "tostadas_francesas": (0.10, 0.85, 0.00, 0.00),
     "waffles": (0.10, 0.85, 0.00, 0.00),
 
-    # Picantes
+    # picantes
     "aguachile": (0.65, 0.05, 0.05, 0.85),
     "alitas_bufalo": (0.75, 0.05, 0.05, 0.85),
     "chilaquiles_rojos": (0.70, 0.05, 0.05, 0.75),
@@ -80,7 +69,7 @@ PERFILES_COMIDA = {
     "tteokbokki": (0.65, 0.25, 0.05, 0.85),
     "wasabi": (0.05, 0.00, 0.20, 1.00),
 
-    # Saladas
+    # saladas
     "aceitunas": (0.90, 0.05, 0.15, 0.00),
     "anchoas": (1.00, 0.00, 0.10, 0.00),
     "cacahuates_salados": (0.90, 0.05, 0.05, 0.00),
@@ -98,7 +87,6 @@ PERFILES_COMIDA = {
     "salami": (0.95, 0.05, 0.05, 0.05),
     "tocino": (0.95, 0.10, 0.05, 0.00),
 }
-
 
 def generar_etiquetas(carpeta_raiz: Path) -> pd.DataFrame:
     if not carpeta_raiz.is_dir():
@@ -140,7 +128,6 @@ def generar_etiquetas(carpeta_raiz: Path) -> pd.DataFrame:
         filas,
         columns=("ruta_imagen", "categoria", "comida", *COLUMNAS_SABOR),
     )
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crea el CSV de sabores del dataset.")

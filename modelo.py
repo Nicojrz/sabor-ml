@@ -1,12 +1,7 @@
-"""Entrena el regresor de sabores usando MobileNetV2 como extractor visual."""
-
 import argparse
 import os
 from pathlib import Path
 import warnings
-
-# Debe configurarse antes de importar TensorFlow. Oculta los mensajes internos
-# de TensorFlow/Metal, pero no los print ni las excepciones de este programa.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 warnings.filterwarnings("ignore")
 
@@ -17,7 +12,6 @@ from sklearn.linear_model import RidgeCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 
-
 SABORES = ("salado", "dulce", "amargo", "picante")
 ARCHIVO_ETIQUETAS = Path("etiquetas_comida.csv")
 CARPETA_MODELO = Path("model")
@@ -27,9 +21,7 @@ ARCHIVO_MODELO = CARPETA_MODELO / "modelo_sabores.joblib"
 FEATURES_ANTERIORES = Path("features_500.npy")
 DIMENSION_FEATURES = 1280
 
-
 def cache_valida(archivo: Path, rutas: list[str]) -> bool:
-    """Comprueba que las features guardadas correspondan al CSV actual."""
     if not archivo.exists():
         return False
 
@@ -44,15 +36,10 @@ def cache_valida(archivo: Path, rutas: list[str]) -> bool:
     if archivo == ARCHIVO_FEATURES and ARCHIVO_RUTAS.exists():
         rutas_cache = ARCHIVO_RUTAS.read_text(encoding="utf-8").splitlines()
         return rutas_cache == rutas
-
-    # Compatibilidad con la cache creada por la version anterior del script.
+    
     return archivo.stat().st_mtime >= ARCHIVO_ETIQUETAS.stat().st_mtime
 
-
 def extraer_features(rutas: list[str], tamano_lote: int) -> np.ndarray:
-    """Extrae características en lotes para aprovechar la GPU eficientemente."""
-    # TensorFlow se importa solo cuando hace falta recalcular. Una ejecución que
-    # usa la cache inicia rápidamente y no reserva memoria de la GPU.
     from tensorflow.keras.applications import MobileNetV2
     from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
     from tensorflow.keras.utils import img_to_array, load_img
@@ -90,13 +77,11 @@ def extraer_features(rutas: list[str], tamano_lote: int) -> np.ndarray:
     guardar_cache(features, rutas)
     return features
 
-
 def guardar_cache(features: np.ndarray, rutas: list[str]) -> None:
     CARPETA_MODELO.mkdir(parents=True, exist_ok=True)
     np.save(ARCHIVO_FEATURES, features)
     ARCHIVO_RUTAS.write_text("\n".join(rutas) + "\n", encoding="utf-8")
     print(f"Features guardadas en {ARCHIVO_FEATURES}.")
-
 
 def obtener_features(
     rutas: list[str], tamano_lote: int, recalcular: bool
@@ -112,7 +97,6 @@ def obtener_features(
         return features
 
     return extraer_features(rutas, tamano_lote)
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Entrena el modelo de sabores.")
@@ -146,7 +130,6 @@ def main() -> None:
     y = df[list(SABORES)].to_numpy(dtype=np.float32)
     X = obtener_features(rutas, args.lote, args.recalcular)
 
-    # Conserva una proporción similar de cada comida en entrenamiento y prueba.
     estratificar = df["comida"] if "comida" in df.columns else None
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -170,7 +153,6 @@ def main() -> None:
     CARPETA_MODELO.mkdir(parents=True, exist_ok=True)
     joblib.dump(modelo, ARCHIVO_MODELO)
     print(f"\nModelo guardado en {ARCHIVO_MODELO}.")
-
 
 if __name__ == "__main__":
     main()
