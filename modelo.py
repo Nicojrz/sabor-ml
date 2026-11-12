@@ -15,16 +15,27 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
+from color import DIMENSION_HSV, NOMBRES_HSV, histograma_hsv
+
 SABORES = ("salado", "dulce", "amargo", "picante")
 ARCHIVO_ETIQUETAS = Path("etiquetas_comida.csv")
 CARPETA_MODELO = Path("model")
-ARCHIVO_FEATURES = CARPETA_MODELO / "features_mobilenetv2.npy"
-ARCHIVO_RUTAS = CARPETA_MODELO / "features_mobilenetv2_rutas.txt"
+ARCHIVO_FEATURES = CARPETA_MODELO / "features_mobilenetv2_hsv.npy"
+ARCHIVO_RUTAS = CARPETA_MODELO / "features_mobilenetv2_hsv_rutas.txt"
+ARCHIVO_COLUMNAS = CARPETA_MODELO / "features_mobilenetv2_hsv_columnas.txt"
+ARCHIVO_FEATURES_CNN = CARPETA_MODELO / "features_mobilenetv2.npy"
+ARCHIVO_RUTAS_CNN = CARPETA_MODELO / "features_mobilenetv2_rutas.txt"
 ARCHIVO_MODELO = CARPETA_MODELO / "modelo_sabores.joblib"
 FEATURES_ANTERIORES = Path("features_500.npy")
-DIMENSION_FEATURES = 1280
+DIMENSION_MOBILENET = 1280
+DIMENSION_FEATURES = DIMENSION_MOBILENET + DIMENSION_HSV
 
-def cache_valida(archivo: Path, rutas: list[str]) -> bool:
+def cache_valida(
+    archivo: Path,
+    rutas: list[str],
+    dimension: int,
+    archivo_rutas: Path | None = None,
+) -> bool:
     if not archivo.exists():
         return False
 
@@ -33,11 +44,11 @@ def cache_valida(archivo: Path, rutas: list[str]) -> bool:
     except (OSError, ValueError):
         return False
 
-    if features.shape != (len(rutas), DIMENSION_FEATURES):
+    if features.shape != (len(rutas), dimension):
         return False
 
-    if archivo == ARCHIVO_FEATURES and ARCHIVO_RUTAS.exists():
-        rutas_cache = ARCHIVO_RUTAS.read_text(encoding="utf-8").splitlines()
+    if archivo_rutas is not None and archivo_rutas.exists():
+        rutas_cache = archivo_rutas.read_text(encoding="utf-8").splitlines()
         return rutas_cache == rutas
     
     return archivo.stat().st_mtime >= ARCHIVO_ETIQUETAS.stat().st_mtime
@@ -59,16 +70,21 @@ def extraer_features(rutas: list[str], tamano_lote: int) -> np.ndarray:
     for numero_lote, inicio in enumerate(range(0, len(rutas), tamano_lote), start=1):
         rutas_lote = rutas[inicio:inicio + tamano_lote]
         imagenes = []
+        features_hsv = []
 
         for ruta in rutas_lote:
             try:
                 imagen = load_img(ruta, target_size=(224, 224), color_mode="rgb")
                 imagenes.append(img_to_array(imagen))
+                features_hsv.append(histograma_hsv(imagen))
             except Exception as error:
                 raise RuntimeError(f"No se pudo cargar la imagen: {ruta}") from error
 
         lote = preprocess_input(np.stack(imagenes, axis=0))
-        features[inicio:inicio + len(rutas_lote)] = extractor.predict_on_batch(lote)
+        features_cnn = extractor.predict_on_batch(lote)
+        features[inicio:inicio + len(rutas_lote)] = np.concatenate(
+            (features_cnn, np.stack(features_hsv)), axis=1
+        )
         print(
             f"\rExtrayendo features: {numero_lote}/{total_lotes} lotes "
             f"({inicio + len(rutas_lote)}/{len(rutas)} imagenes)",
@@ -84,18 +100,57 @@ def guardar_cache(features: np.ndarray, rutas: list[str]) -> None:
     CARPETA_MODELO.mkdir(parents=True, exist_ok=True)
     np.save(ARCHIVO_FEATURES, features)
     ARCHIVO_RUTAS.write_text("\n".join(rutas) + "\n", encoding="utf-8")
+    columnas = [
+        *(f"mobilenet_{indice:04d}" for indice in range(DIMENSION_MOBILENET)),
+        *NOMBRES_HSV,
+    ]
+    ARCHIVO_COLUMNAS.write_text("\n".join(columnas) + "\n", encoding="utf-8")
     print(f"Features guardadas en {ARCHIVO_FEATURES}.")
+
+def extraer_solo_hsv(rutas: list[str]) -> np.ndarray:
+    from tensorflow.keras.utils import load_img
+
+    features_hsv = np.empty((len(rutas), DIMENSION_HSV), dtype=np.float32)
+    for indice, ruta in enumerate(rutas):
+        try:
+            imagen = load_img(ruta, target_size=(224, 224), color_mode="rgb")
+            features_hsv[indice] = histograma_hsv(imagen)
+        except Exception as error:
+            raise RuntimeError(f"No se pudo cargar la imagen: {ruta}") from error
+
+        if (indice + 1) % 100 == 0 or indice + 1 == len(rutas):
+            print(
+                f"\rExtrayendo histogramas HSV: {indice + 1}/{len(rutas)} imagenes",
+                end="",
+                flush=True,
+            )
+    print()
+    return features_hsv
 
 def obtener_features(
     rutas: list[str], tamano_lote: int, recalcular: bool
 ) -> np.ndarray:
-    if not recalcular and cache_valida(ARCHIVO_FEATURES, rutas):
+    if not recalcular and cache_valida(
+        ARCHIVO_FEATURES, rutas, DIMENSION_FEATURES, ARCHIVO_RUTAS
+    ):
         print(f"Reutilizando {ARCHIVO_FEATURES}; no se procesaran las imagenes.")
         return np.load(ARCHIVO_FEATURES)
 
-    if not recalcular and cache_valida(FEATURES_ANTERIORES, rutas):
-        print(f"Migrando la cache anterior {FEATURES_ANTERIORES}...")
-        features = np.load(FEATURES_ANTERIORES)
+    cache_cnn = None
+    if not recalcular and cache_valida(
+        ARCHIVO_FEATURES_CNN, rutas, DIMENSION_MOBILENET, ARCHIVO_RUTAS_CNN
+    ):
+        cache_cnn = ARCHIVO_FEATURES_CNN
+    elif not recalcular and cache_valida(
+        FEATURES_ANTERIORES, rutas, DIMENSION_MOBILENET
+    ):
+        cache_cnn = FEATURES_ANTERIORES
+
+    if cache_cnn is not None:
+        print(f"Reutilizando MobileNetV2 desde {cache_cnn}.")
+        features = np.concatenate(
+            (np.load(cache_cnn), extraer_solo_hsv(rutas)), axis=1
+        )
         guardar_cache(features, rutas)
         return features
 

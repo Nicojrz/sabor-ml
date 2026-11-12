@@ -30,6 +30,7 @@ etiquetas_comida.csv
 model/*.npy
 model/*.joblib
 model/*_rutas.txt
+model/*_columnas.txt
 features_*.npy
 
 # Registros y archivos temporales

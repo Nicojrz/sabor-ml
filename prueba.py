@@ -16,6 +16,7 @@ from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing import image
 
+from color import histograma_hsv
 from etiquetado import PERFILES_COMIDA, normalizar
 
 
@@ -44,9 +45,9 @@ def cargar_modelos():
     return modelo, extractor
 
 
-def cargar_imagen(ruta: Path) -> np.ndarray:
+def cargar_imagen(ruta: Path) -> tuple[np.ndarray, np.ndarray]:
     img = image.load_img(ruta, target_size=(224, 224), color_mode="rgb")
-    return image.img_to_array(img)
+    return image.img_to_array(img), histograma_hsv(img)
 
 
 def predecir_rutas(modelo, extractor, rutas: list[Path], lote: int) -> np.ndarray:
@@ -56,15 +57,21 @@ def predecir_rutas(modelo, extractor, rutas: list[Path], lote: int) -> np.ndarra
     for numero, inicio in enumerate(range(0, len(rutas), lote), start=1):
         rutas_lote = rutas[inicio:inicio + lote]
         imagenes = []
+        features_hsv = []
 
         for ruta in rutas_lote:
             try:
-                imagenes.append(cargar_imagen(ruta))
+                imagen_rgb, histograma = cargar_imagen(ruta)
+                imagenes.append(imagen_rgb)
+                features_hsv.append(histograma)
             except Exception as error:
                 raise RuntimeError(f"No se pudo cargar la imagen: {ruta}") from error
 
         entradas = preprocess_input(np.stack(imagenes, axis=0))
-        caracteristicas = extractor.predict_on_batch(entradas)
+        features_cnn = extractor.predict_on_batch(entradas)
+        caracteristicas = np.concatenate(
+            (features_cnn, np.stack(features_hsv)), axis=1
+        )
         predicciones.append(np.clip(modelo.predict(caracteristicas), 0, 1))
 
         if len(rutas) > lote:
