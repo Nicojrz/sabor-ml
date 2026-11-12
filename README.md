@@ -2,7 +2,7 @@
 
 Este proyecto estima la intensidad de cuatro sabores en una imagen de comida: salado, dulce, amargo y picante. Las predicciones se expresan con valores entre 0 y 1.
 
-El proyecto utiliza MobileNetV2 para extraer características visuales y RidgeCV para aprender los perfiles de sabor del dataset.
+El proyecto utiliza MobileNetV2 para extraer características visuales y un SVR con kernel radial RBF para aprender los perfiles de sabor del dataset.
 
 ## Preparar el entorno
 

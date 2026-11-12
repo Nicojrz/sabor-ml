@@ -8,9 +8,12 @@ warnings.filterwarnings("ignore")
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import RidgeCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
 
 SABORES = ("salado", "dulce", "amargo", "picante")
 ARCHIVO_ETIQUETAS = Path("etiquetas_comida.csv")
@@ -139,8 +142,13 @@ def main() -> None:
         stratify=estratificar,
     )
 
-    print(f"Entrenando RidgeCV con {len(X_train)} imagenes...")
-    modelo = RidgeCV(alphas=[1.0, 10.0, 50.0, 100.0, 500.0], cv=5)
+    print(f"Entrenando SVR con kernel RBF con {len(X_train)} imagenes...")
+    modelo = make_pipeline(
+        StandardScaler(),
+        MultiOutputRegressor(
+            SVR(kernel="rbf", C=10.0, epsilon=0.05, gamma="scale")
+        ),
+    )
     modelo.fit(X_train, y_train)
 
     predicciones = np.clip(modelo.predict(X_test), 0, 1)
@@ -148,7 +156,7 @@ def main() -> None:
     print("\nEvaluacion del modelo:")
     for sabor, error in zip(SABORES, errores):
         print(f"  {sabor.capitalize():<8}: MAE +/-{error:.3f}")
-    print(f"  Alpha seleccionado: {modelo.alpha_}")
+    print("  Configuracion: kernel=rbf, C=10.0, epsilon=0.05, gamma=scale")
 
     CARPETA_MODELO.mkdir(parents=True, exist_ok=True)
     joblib.dump(modelo, ARCHIVO_MODELO)
