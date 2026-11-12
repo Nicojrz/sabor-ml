@@ -1,0 +1,12 @@
+# entorno en anaconda
+conda create -n sabor_ml python=3.10 -y
+conda activate sabor_ml
+
+# librerías
+conda install pandas numpy scikit-learn pillow jupyter -y
+
+# tensorflow for mac os
+pip install tensorflow-macos tensorflow-metal
+
+# tensorflow intel
+pip install tensorflow

@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+.conda/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dataset e imagenes de prueba
+train/
+test/
+
+# Archivos generados por el proyecto
+etiquetas_comida.csv
+model/*.npy
+model/*.joblib
+model/*_rutas.txt
+features_*.npy
+
+# Registros y archivos temporales
+*.log
+*.tmp
+.cache/
