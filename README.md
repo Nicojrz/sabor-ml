@@ -109,31 +109,32 @@ Picante   : 0.81  (81.0%)
 
 ## Evaluar una carpeta
 
-`prueba.py` también puede evaluar todas las imágenes de una carpeta y mostrar el MAE por sabor, la exactitud del sabor dominante y una matriz de confusión.
+`prueba.py` también puede evaluar todas las imágenes de `test` usando las respuestas de `test/respuestas_prueba.csv`. El resultado muestra el MAE por sabor, la exactitud del sabor dominante y una matriz de confusión.
 
 ```bash
-python prueba.py --carpeta train
+python prueba.py --carpeta test
 ```
 
-Las imágenes pueden estar organizadas en varios niveles, pero la carpeta que contiene cada imagen debe tener el nombre de una comida definida en `etiquetado.py`.
+El CSV debe contener una fila por imagen y las columnas `archivo`, `clase` y `alimento`.
 
-```text
-evaluacion/
-├── brownie/
-│   ├── imagen_01.jpg
-│   └── imagen_02.jpg
-├── chile_habanero/
-│   └── imagen_01.jpg
-└── papas_francesas/
-    └── imagen_01.jpg
+```csv
+archivo,clase,alimento
+prueba_001.jpg,amarga,berenjenas
+prueba_002.jpg,picante,ramen_picante
 ```
 
-El MAE compara los cuatro valores estimados con el perfil configurado para cada comida. La matriz de confusión compara el sabor dominante real con el sabor dominante predicho.
+Cuando el CSV tiene otro nombre o se encuentra en otra ruta se puede indicar de forma explícita.
+
+```bash
+python prueba.py --carpeta test --csv test/respuestas_prueba.csv
+```
+
+El MAE compara los valores estimados con el perfil configurado para cada alimento. La matriz de confusión utiliza la columna `clase` como respuesta real y la compara con el sabor dominante predicho.
 
 El tamaño del lote puede ajustarse durante la evaluación.
 
 ```bash
-python prueba.py --carpeta evaluacion --lote 16
+python prueba.py --carpeta test --lote 16
 ```
 
 ## Flujo completo
