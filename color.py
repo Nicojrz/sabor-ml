@@ -1,7 +1,4 @@
-"""Características de color compartidas por entrenamiento y predicción."""
-
 import numpy as np
-
 
 BINS_MATIZ = 36
 BINS_SATURACION = 16
@@ -13,7 +10,6 @@ NOMBRES_HSV = (
     + tuple(f"hsv_saturacion_{indice:02d}" for indice in range(BINS_SATURACION))
     + tuple(f"hsv_valor_{indice:02d}" for indice in range(BINS_VALOR))
 )
-
 
 def _normalizar_histograma(histograma: np.ndarray) -> np.ndarray:
     total = histograma.sum()
@@ -29,8 +25,6 @@ def histograma_hsv(imagen) -> np.ndarray:
     saturacion = hsv[..., 1]
     valor = hsv[..., 2]
 
-    # El matiz de un pixel gris no es informativo. Ponderarlo por saturación
-    # hace que los rojos, naranjas y verdes intensos tengan mayor influencia.
     histograma_matiz = np.histogram(
         matiz,
         bins=BINS_MATIZ,
